@@ -1,0 +1,64 @@
+#!/bin/bash
+
+DEFAULT_POM='/project/@xmlns=http://maven.apache.org/POM/4.0.0
+/project/@xmlns:xsi=http://www.w3.org/2001/XMLSchema-instance
+/project/@xsi:schemaLocation=http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd
+/project/modelVersion=4.0.0
+/project/groupId={package}
+/project/artifactId={name}
+/project/version=1.0-SNAPSHOT
+/project/build/plugins/plugin/artifactId=maven-compiler-plugin
+/project/build/plugins/plugin/version=3.7.0
+/project/build/plugins/plugin/configuration/source=1.8
+/project/build/plugins/plugin/configuration/target=1.8
+/project/build/plugins/plugin
+/project/build/plugins/plugin/groupId=org.apache.maven.plugins
+/project/build/plugins/plugin/artifactId=maven-shade-plugin
+/project/build/plugins/plugin/version=3.1.0
+/project/build/plugins/plugin/executions/execution/phase=package
+/project/build/plugins/plugin/executions/execution/goals/goal=shade
+/project/build/plugins/plugin/executions/execution/configuration/transformers/transformer/@implementation=org.apache.maven.plugins.shade.resource.ManifestResourceTransformer
+/project/build/plugins/plugin/executions/execution/configuration/transformers/transformer/manifestEntries/Main-Class={main-class}
+/project/build/plugins/plugin/executions/execution/configuration/artifactSet
+/project/build/plugins/plugin/executions/execution/configuration/outputFile=${project.build.directory}/${project.artifactId}-${project.version}-fat.jar
+/project/dependencies/dependency/groupId=junit
+/project/dependencies/dependency/artifactId=junit
+/project/dependencies/dependency/version=4.12
+/project/dependencies/dependency/scope=test'
+
+PROJECT_NAME=$1
+PACKAGE_NAME=$2
+
+if [ -z $PROJECT_NAME ] || [ -z $PACKAGE_NAME ]
+then
+  echo 'USAGE: create-project <name> <package>'
+  exit -1
+fi
+
+if [ -d $PROJECT_NAME ]
+then
+  echo Can not create project.
+  echo Directory with name \'$PROJECT_NAME\' already exists.
+  exit -1
+fi
+
+JAVA_SOURCE_PATH=$PROJECT_NAME/src/main/java
+JAVA_TEST_PATH=$PROJECT_NAME/src/test/java
+
+mkdir $PROJECT_NAME
+mkdir -p $JAVA_SOURCE_PATH/$(echo $PACKAGE_NAME | tr "." "/")
+mkdir -p $JAVA_TEST_PATH/$(echo $PACKAGE_NAME | tr "." "/")
+
+
+MAIN_CLASS=$PACKAGE_NAME.$(echo $PROJECT_NAME | sed -r 's/(^|-)(\w)/\U\2/g')
+
+echo "$DEFAULT_POM" \
+     | 2xml \
+     | sed \
+      -e "s/{name}/$PROJECT_NAME/g" \
+      -e "s/{package}/$PACKAGE_NAME/g" \
+      -e "s/{main-class}/$MAIN_CLASS/g" \
+     | xmllint --format - \
+     > $PROJECT_NAME/pom.xml
+
+echo Project \'$PROJECT_NAME\' is ready.

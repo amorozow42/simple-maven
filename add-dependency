@@ -1,0 +1,40 @@
+#!/bin/bash
+
+GROUPID=$1
+ARTIFACTID=$2
+VERSION=$3
+SCOPE=$4
+
+if [ $# -lt 3 ]
+then
+  echo 'USAGE: add-dependency <group> <artifact> <version> [scope]'
+  exit -1
+fi
+
+PROJECT_PATH=$(pwd)
+PROJECT_FILE=$PROJECT_PATH/pom.xml
+PROJECT_FILE_TMP=$PROJECT_PATH/pom.xml.tmp
+
+if [ ! -e $PROJECT_FILE ]
+then
+  echo 'Can not find Maven project.'
+  exit -1
+fi
+
+xml2 < $PROJECT_FILE > $PROJECT_FILE_TMP
+
+echo /project/dependencies/dependency >> $PROJECT_FILE_TMP
+echo /project/dependencies/dependency/groupId=$GROUPID >> $PROJECT_FILE_TMP
+echo /project/dependencies/dependency/artifactId=$ARTIFACTID >> $PROJECT_FILE_TMP
+echo /project/dependencies/dependency/version=$VERSION >> $PROJECT_FILE_TMP
+
+if [ ! -z $SCOPE ]
+then
+  echo /project/dependencies/dependency/scope=$SCOPE >> $PROJECT_FILE_TMP
+fi
+
+2xml < $PROJECT_FILE_TMP | xmllint --format - > $PROJECT_FILE
+
+rm pom.xml.tmp
+
+echo 'Project is updated.'
